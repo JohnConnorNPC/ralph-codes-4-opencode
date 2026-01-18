@@ -1280,6 +1280,9 @@ class RunningTask:
 class RalphGUI:
     """Main GUI application for Ralph project setup."""
 
+    ANTHROPIC_VARIANTS = ["None", "minimal", "high", "max"]
+    OPENAI_VARIANTS = ["None", "low", "medium", "high", "xhigh"]
+
     def __init__(self, root):
         """Initialize the GUI components."""
         self.root = root
@@ -1328,6 +1331,7 @@ class RalphGUI:
         # Model selection
         self.selected_model = tk.StringVar()
         self.available_models = []
+        self.model_variants = {}
         self.recently_used_models = []
         self.recent_models_file = os.path.join(self.script_dir, "recent_models.json")
 
@@ -1336,7 +1340,10 @@ class RalphGUI:
 
         # Model variant selection
         self.selected_variant = tk.StringVar()
-        self.variant_options = ["None", "minimal", "high", "max"]
+        self.variant_options = list(self.ANTHROPIC_VARIANTS)
+        self.recent_variants_by_model = {}
+        self.recent_variant_default = "None"
+
         self.recent_variant_file = os.path.join(self.script_dir, "recent_variant.json")
 
         # Load recently used variant from file
@@ -1579,33 +1586,150 @@ class RalphGUI:
 
         return recent + others
 
+    def _get_variant_options_for_model(self, model: str) -> list[str]:
+        """Get variant options based on the model provider."""
+        if model in self.model_variants:
+            options = self.model_variants.get(model, [])
+            return list(options) if options else ["None"]
+        provider = (model or "").split("/", 1)[0].lower()
+        if provider == "openai":
+            return list(self.OPENAI_VARIANTS)
+        if provider == "anthropic":
+            return list(self.ANTHROPIC_VARIANTS)
+        return list(self.ANTHROPIC_VARIANTS)
+
+    def _get_recent_variant_for_model(self, model: str) -> Optional[str]:
+        """Get the most recent variant for a specific model."""
+        if model in self.recent_variants_by_model:
+            return self.recent_variants_by_model.get(model)
+        if self.recent_variant_default:
+            return self.recent_variant_default
+        return None
+
+    def _update_variant_dropdown(self, model: Optional[str] = None):
+        """Update the variant dropdown based on the selected model."""
+        model_name = model if model is not None else self.selected_model.get()
+        options = self._get_variant_options_for_model(model_name)
+        if not options:
+            options = ["None"]
+        self.variant_options = options
+
+        if hasattr(self, "variant_combo"):
+            self.variant_combo["values"] = options
+
+        preferred_variant = self._get_recent_variant_for_model(model_name)
+        if preferred_variant in options:
+            self.selected_variant.set(preferred_variant)
+            return
+
+        fallback = "None" if "None" in options else (options[0] if options else "")
+        self.selected_variant.set(fallback)
+
     def _load_recent_variant(self):
         """Load recently used variant from file."""
+        self.recent_variants_by_model = {}
+        self.recent_variant_default = "None"
         try:
             if os.path.exists(self.recent_variant_file):
                 with open(self.recent_variant_file, encoding="utf-8") as f:
                     data = json.load(f)
-                    variant = data.get("variant", "None")
-                    if variant in self.variant_options:
-                        self.selected_variant.set(variant)
-                    else:
-                        self.selected_variant.set("None")
-            else:
-                self.selected_variant.set("None")
+
+                if isinstance(data, dict):
+                    default_variant = data.get("variant")
+                    if isinstance(default_variant, str) and default_variant:
+                        self.recent_variant_default = default_variant
+
+                    by_model = data.get("by_model")
+                    if isinstance(by_model, dict):
+                        for model_name, variant in by_model.items():
+                            if isinstance(model_name, str) and isinstance(variant, str) and variant:
+                                self.recent_variants_by_model[model_name] = variant
         except Exception:
-            self.selected_variant.set("None")
+            self.recent_variants_by_model = {}
+            self.recent_variant_default = "None"
+
+        self.selected_variant.set(self.recent_variant_default)
 
     def _save_recent_variant(self):
         """Save recently used variant to file."""
         try:
+            model = self.selected_model.get()
+            variant = self.selected_variant.get()
+            if model and model != "Loading models...":
+                self.recent_variants_by_model[model] = variant
+            if isinstance(variant, str) and variant:
+                self.recent_variant_default = variant
+            data = {
+                "variant": self.recent_variant_default,
+                "by_model": self.recent_variants_by_model,
+            }
             with open(self.recent_variant_file, "w", encoding="utf-8") as f:
-                json.dump({"variant": self.selected_variant.get()}, f)
+                json.dump(data, f)
         except Exception:
             pass
 
     def _on_variant_selected(self, event=None):
         """Handle variant selection change."""
         self._save_recent_variant()
+
+    def _parse_models_verbose_output(self, output: str) -> tuple[list[str], dict[str, list[str]]]:
+        """Parse opencode models --verbose output for model IDs and variants."""
+        models: list[str] = []
+        variants_by_model: dict[str, list[str]] = {}
+
+        def add_model_from_data(data: dict) -> None:
+            provider_id = data.get("providerID")
+            model_id = data.get("id")
+            if not provider_id or not model_id:
+                return
+            full_id = f"{provider_id}/{model_id}"
+            if full_id not in models:
+                models.append(full_id)
+            raw_variants = data.get("variants", {})
+            if isinstance(raw_variants, dict):
+                variant_names = list(raw_variants.keys())
+            else:
+                variant_names = []
+            variants_by_model[full_id] = ["None", *variant_names] if variant_names else ["None"]
+
+        buffer: list[str] = []
+        depth = 0
+        in_json = False
+
+        def flush_buffer() -> None:
+            nonlocal buffer
+            if not buffer:
+                return
+            try:
+                data = json.loads("\n".join(buffer))
+            except json.JSONDecodeError:
+                buffer = []
+                return
+            add_model_from_data(data)
+            buffer = []
+
+        for line in output.splitlines():
+            stripped = line.strip()
+            if not in_json:
+                if stripped.startswith("{"):
+                    in_json = True
+                    buffer = [line]
+                    depth = stripped.count("{") - stripped.count("}")
+                    if depth == 0:
+                        flush_buffer()
+                        in_json = False
+                continue
+
+            buffer.append(line)
+            depth += line.count("{") - line.count("}")
+            if depth == 0:
+                flush_buffer()
+                in_json = False
+
+        if in_json:
+            flush_buffer()
+
+        return models, variants_by_model
 
     def _load_models_async(self):
         """Load available models from opencode models in a background thread."""
@@ -1615,6 +1739,28 @@ class RalphGUI:
                 # On Windows, we need shell=True to find .cmd files in PATH
                 # On other platforms, shell=False works fine
                 is_windows = platform.system() == "Windows"
+                verbose_command = (
+                    "opencode models --verbose"
+                    if is_windows
+                    else ["opencode", "models", "--verbose"]
+                )
+                result = subprocess.run(
+                    verbose_command,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    shell=is_windows,
+                )
+                if result.returncode == 0:
+                    models, variants_by_model = self._parse_models_verbose_output(result.stdout)
+                    if models:
+                        self.available_models = models
+                        self.model_variants = variants_by_model
+                        # Update the dropdown in the main thread
+                        self.root.after(0, self._update_model_dropdown)
+                        return
+
+                # Fallback to non-verbose model list
                 result = subprocess.run(
                     "opencode models" if is_windows else ["opencode", "models"],
                     capture_output=True,
@@ -1628,6 +1774,7 @@ class RalphGUI:
                         line.strip() for line in result.stdout.strip().split("\n") if line.strip()
                     ]
                     self.available_models = models
+                    self.model_variants = {}
                     # Update the dropdown in the main thread
                     self.root.after(0, self._update_model_dropdown)
             except subprocess.TimeoutExpired:
@@ -1656,6 +1803,7 @@ class RalphGUI:
             ):
                 # Select the first model (most recently used or first alphabetically)
                 self.selected_model.set(sorted_models[0])
+        self._update_variant_dropdown(self.selected_model.get())
 
     def _download_gif(self, url: str, filepath: str) -> bool:
         """Download a GIF from URL and save to filepath.
@@ -2164,6 +2312,7 @@ class RalphGUI:
         model = self.selected_model.get()
         if model and model != "Loading models...":
             self._add_to_recent_models(model)
+            self._update_variant_dropdown(model)
 
     def _open_opencode_editor(self):
         """Open the opencode.json editor popup."""
