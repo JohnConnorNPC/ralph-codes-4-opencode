@@ -1,6 +1,7 @@
 # Ralph Codes 4 OpenCode
 
-<img width="802" height="732" alt="image" src="https://github.com/user-attachments/assets/daacf6b9-1d58-4536-8c01-3f2d36016749" />
+
+<img width="802" height="984" alt="image" src="https://github.com/user-attachments/assets/b0e4b879-aec1-4c62-8578-216fdfb796ed" />
 
 
 
@@ -147,3 +148,4 @@ MIT License
 
 - Inspired by Ralph Wiggum from The Simpsons
 - Built for use with [OpenCode CLI](https://github.com/opencode-ai/opencode)
+
