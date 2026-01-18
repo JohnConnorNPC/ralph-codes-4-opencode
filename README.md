@@ -11,13 +11,16 @@ A cross-platform GUI application for setting up and running AI-assisted coding t
 
 ## Features
 
-- **Cross-Platform Support**: Works on Windows and Linux
+- **Cross-Platform Support**: Works on Windows, macOS, and Linux
 - **Dark Mode Interface**: Easy on the eyes with Ralph Wiggum branding
-- **Model Selection**: Choose from available OpenCode models
+- **Model + Variant Selection**: Choose OpenCode models and variants
 - **Task Management**: Track multiple concurrent running tasks
+- **Loop Controls**: Pause, resume, or stop running tasks
 - **Automatic Backup**: Backs up existing files before each run
 - **Completion Viewer**: GUI viewer shows results when tasks complete
+- **opencode.json Editor**: Edit permission presets inside the app
 - **Voice Feedback**: Text-to-speech completion notifications (Windows, macOS, Linux)
+
 
 ## Prerequisites
 
@@ -31,8 +34,9 @@ A cross-platform GUI application for setting up and running AI-assisted coding t
 
 ```bash
 # Clone the repository
-git clone https://github.com/ralph-codes/ralph.git
-cd ralph
+git clone https://github.com/JohnConnorNPC/ralph-codes-4-opencode.git
+cd ralph-codes-4-opencode
+
 
 # Install dependencies
 pip install -r requirements.txt
@@ -68,56 +72,75 @@ sudo pacman -S tk
 # Run directly
 python ralph_gui.py
 
+# Or use the convenience launcher
+run_ralph.cmd   # Windows
+./run_ralph.sh  # Linux/macOS
+
 # Or if installed as package
 ralph
+
 ```
 
 ### Using Ralph
 
 1. **Select Target Folder**: Choose a project folder where Ralph will work
-2. **Choose Model**: Select an AI model from the dropdown (recently used models appear first)
-3. **Enter Design**: Write your task/design in the text area
-4. **Run Ralph**: Click "Run Ralph" to start the AI coding task
+2. **Choose Model + Variant**: Select an AI model and optional variant from the dropdown
+3. **Configure opencode.json**: Optionally edit/copy the OpenCode config for the run
+4. **Enter Design**: Write your task/design in the text area
+5. **Run Ralph**: Click "Run Ralph" to start the AI coding task
+
 
 ### How It Works
 
-1. Ralph creates a `RALPH-DESIGN.md` file with your instructions
-2. Launches OpenCode CLI in a new terminal window
-3. OpenCode reads the design and begins working
-4. Progress is tracked in `RALPH-PROGRESS.md`
-5. When complete, `RALPH-COMPLETE.md` is created
-6. The viewer automatically opens to show results
+1. Ralph writes `RALPH-DESIGN.md` and copies `RALPH-SPECS.md` (and optional `opencode.json`) to the target folder
+2. Launches OpenCode CLI using the instructions in `RALPH-PROMPT.md`
+3. OpenCode updates `RALPH-PLAN.md` and `RALPH-PROGRESS.md` each iteration
+4. Each iteration ends with `RALPH-CHECKPOINT.md` until completion
+5. Completion creates `RALPH-COMPLETE.md`; blocked runs create `RALPH-BLOCKED.md`
+6. The viewer opens to show results and plays a Ralph quote
+
 
 ### Files
 
 | File | Purpose |
 |------|---------|
 | `RALPH-DESIGN.md` | Your task/design instructions |
-| `RALPH-PROGRESS.md` | AI's work-in-progress notes |
-| `RALPH-COMPLETE.md` | Final completion summary |
-| `ralph.cmd` / `ralph.sh` | Platform launcher scripts |
+| `RALPH-PLAN.md` | Checklist for each iteration |
+| `RALPH-PROGRESS.md` | Append-only progress log |
+| `RALPH-CHECKPOINT.md` | Signals one iteration done |
+| `RALPH-COMPLETE.md` | Signals all requirements done |
+| `RALPH-BLOCKED.md` | Signals blocked state |
+| `RALPH-PROMPT.md` | Prompt template for OpenCode |
+| `RALPH-SPECS.md` | Lookup table of patterns |
+| `run_ralph.cmd` / `run_ralph.sh` | Platform GUI launchers |
+| `opencode.json` | Optional OpenCode config copied to target |
+
 
 ## Configuration
 
 Recent folders and models are saved automatically to:
 - `recent_folders.json`
 - `recent_models.json`
+- `recent_variant.json`
 
+Ralph GIF URLs and quotes live in `ralph_content.json` and are cached in `gif_cache/`.
 Logs are written to `ralph.log`.
+
 
 ## Project Structure
 
 ```
 ├── ralph_gui.py        # Main GUI application (includes integrated viewer and TTS)
-├── ralph.cmd           # Windows script for OpenCode CLI
-├── ralph.sh            # Linux script for OpenCode CLI
 ├── run_ralph.cmd       # Windows GUI launcher
-├── run_ralph.sh        # Linux GUI launcher
-├── ralph.jpg           # Application branding
-├── config.ini          # Configuration settings
+├── run_ralph.sh        # Linux/macOS GUI launcher
+├── opencode.json       # Optional OpenCode config template
+├── ralph_content.json  # Ralph GIF URLs and quotes
+├── RALPH-*.md          # Prompt templates and scaffolds
 ├── requirements.txt    # Python dependencies
 ├── pyproject.toml      # Package configuration
+├── gif_cache/          # Cached GIFs (created at runtime)
 └── backup/             # Automatic backups (created at runtime)
+
 ```
 
 ## Development
@@ -128,24 +151,11 @@ Logs are written to `ralph.log`.
 pip install -e ".[dev]"
 ```
 
-### Run linting
-
-```bash
-ruff check .
-```
-
-### Type checking
-
-```bash
-mypy ralph_gui.py
-```
-
-## License
-
 MIT License
 
 ## Acknowledgments
 
-- Inspired by Ralph Wiggum from The Simpsons
+ 
 - Built for use with [OpenCode CLI](https://github.com/opencode-ai/opencode)
+- Inspired by [The Ralph Wiggum Loop from 1st principles](https://www.youtube.com/watch?v=4Nna09dG_c0&start=2) — Geoffrey Huntley (creator of Ralph)
 
