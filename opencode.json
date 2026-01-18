@@ -1,0 +1,9 @@
+{
+  "permission": {
+    "external_directory": {
+      "/d": "allow",
+      "/d/*": "allow"
+    }
+  },
+  "$schema": "https://opencode.ai/config.json"
+}

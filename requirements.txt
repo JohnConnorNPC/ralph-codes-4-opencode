@@ -1,0 +1,11 @@
+# Ralph - Production Dependencies
+# Install with: pip install -r requirements.txt
+
+# Image processing for Ralph Wiggum display
+Pillow>=9.0.0
+
+# Note: tkinter is included with Python standard library
+# on most systems, but may need separate installation on some Linux distros:
+# - Ubuntu/Debian: sudo apt-get install python3-tk
+# - Fedora: sudo dnf install python3-tkinter
+# - Arch: sudo pacman -S tk
