@@ -30,7 +30,7 @@ A cross-platform GUI application for setting up and running AI-assisted coding t
 
 ## Installation
 
-### Option 1: Install from source
+### Install from source
 
 ```bash
 # Clone the repository
@@ -43,12 +43,6 @@ pip install -r requirements.txt
 
 # Or install as a package
 pip install -e .
-```
-
-### Option 2: Install dependencies only
-
-```bash
-pip install Pillow
 ```
 
 ### Linux: Install tkinter if needed
@@ -158,5 +152,6 @@ MIT License
  
 - Built for use with [OpenCode CLI](https://github.com/opencode-ai/opencode)
 - Inspired by [The Ralph Wiggum Loop from 1st principles](https://www.youtube.com/watch?v=4Nna09dG_c0&start=2) — Geoffrey Huntley (creator of Ralph)
+
 
 
