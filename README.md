@@ -86,7 +86,7 @@ ralph
 1. **Select Target Folder**: Choose a project folder where Ralph will work
 2. **Choose Model + Variant**: Select an AI model and optional variant from the dropdown
 3. **Configure opencode.json**: Optionally edit/copy the OpenCode config for the run
-4. **Enter Design**: Write your task/design in the text area
+4. **Enter Design**: Start from the preloaded `RALPH-DESIGN.md` template and fill in your task
 5. **Run Ralph**: Click "Run Ralph" to start the AI coding task
 
 
@@ -158,4 +158,5 @@ MIT License
  
 - Built for use with [OpenCode CLI](https://github.com/opencode-ai/opencode)
 - Inspired by [The Ralph Wiggum Loop from 1st principles](https://www.youtube.com/watch?v=4Nna09dG_c0&start=2) — Geoffrey Huntley (creator of Ralph)
+
 
